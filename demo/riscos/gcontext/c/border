@@ -97,6 +97,7 @@ static void border_intdraw(gcontext_t *gc,
   inner.bottom = outer.bottom + edges->bottom;
   inner.left = outer.left + edges->left;
   dprintf("border_intdraw: %08lx/%08lx\n", tl,br);
+
   if (tl == br)
   {
     /* It's a 'solid' external border; no slab effect, so we can optimise
@@ -262,6 +263,9 @@ void border_draw(gcontext_t *gc,
   if (!hasborder || type == bt_none)
     return;
 
+  if (gc->clipstate == cs_suppress)
+    return;
+
   if (face == COLOUR_NONE && opp == COLOUR_NONE)
     return;
 
@@ -401,6 +405,9 @@ void border_drawfull(gcontext_t *gc,
     inner.right = x + width - edges->right;
     inner.bottom = y + edges->bottom;
     inner.left = x + edges->left;
+
+    if (gc->clipstate == cs_suppress)
+      return;
 
     /* Shapes are in the form:
         a b

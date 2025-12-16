@@ -1,0 +1,26 @@
+/*******************************************************************
+ * File:        clipping
+ * Purpose:     Clipping state for graphics context
+ * Author:      Gerph
+ * Date:        16 Dec 2025
+ ******************************************************************/
+
+#ifndef CLIPPING_H
+#define CLIPPING_H
+
+#include <stdlib.h>
+
+#include "gcontext.h"
+
+
+/*************************************************** Gerph *********
+ Function:      gcontext_vdu_clipping
+ Description:   Description of function
+ Parameters:    gc-> graphics context
+                bbox-> the region to clip, or NULL to reset bounding box
+ Returns:       true if clipping supported, false if not supported.
+ ******************************************************************/
+bool gcontext_vdu_clipping(struct gcontext_s *gc,
+                           bbox_t *bbox);
+
+#endif

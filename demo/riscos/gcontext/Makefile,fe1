@@ -29,7 +29,7 @@ CDEFINES   =
 # Objects to build, using the format o.<name> (will be varied for build type)
 OBJS       = o.border \
              o.font \
-             o.gcontext \
+             o.clipping \
              o.gcontext \
              o.screen \
              o.vdu5 \

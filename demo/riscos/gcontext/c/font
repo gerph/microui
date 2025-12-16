@@ -118,28 +118,39 @@ coords_t font_paint(gcontext_t *gc, font_t font, int x, int y,
   if (font == NULL)
   {
     /* No font data, so just the system font text string */
-    _swix(0x105,0);
-    _swix(ColourTrans_SetGCOL,_IN(0)|_INR(3,4), fg,0,0);
-    _swix(OS_Plot,_INR(0,2),4,x,y+28-2);
-    _swix(OS_WriteN,_INR(0,1),str,len);
-    _swix(0x104,0);
-    end.x += len * 16;
+    if (gc->clipstate != cs_suppress)
+    {
+        _swix(0x105,0);
+        _swix(ColourTrans_SetGCOL,_IN(0)|_INR(3,4), fg,0,0);
+        _swix(OS_Plot,_INR(0,2),4,x,y+28-2);
+        _swix(OS_WriteN,_INR(0,1),str,len);
+        _swix(0x104,0);
+    }
+    end.x = x + len * 16;
     end.y = y;
   }
   else
   {
-    _swix(ColourTrans_SetFontColours,_INR(0,3), font->handle,
-                                                bg,fg, 14);
-    err = _swix(Font_Paint, _INR(0,7)|_OUTR(3,4),
-                            font->handle, str,
-                            (1<<8) | (1<<7) | (1<<4) | (1<<11),
-                            x, y, NULL, NULL, len,
-                            &end.x, &end.y);
-    if (err)
+    if (gc->clipstate != cs_suppress)
     {
-      dprintf("FAILED: Error writing string\n");
-      end.x = x;
-      end.y = y;
+        _swix(ColourTrans_SetFontColours,_INR(0,3), font->handle,
+                                                    bg,fg, 14);
+        err = _swix(Font_Paint, _INR(0,7)|_OUTR(3,4),
+                                font->handle, str,
+                                (1<<8) | (1<<7) | (1<<4) | (1<<11),
+                                x, y, NULL, NULL, len,
+                                &end.x, &end.y);
+        if (err)
+        {
+          dprintf("FAILED: Error writing string\n");
+          end.x = x;
+          end.y = y;
+        }
+    }
+    else
+    {
+        end.x = x + len * 16; /* Not correct, but hopefully doesn't hurt */
+        end.y = y;
     }
   }
   return end;
@@ -352,13 +363,16 @@ retry_left:
 
   dprintf("Plot string %p at %i, %i (bg=%08lx, fg=%08lx) -> %i, %i\n", str, x, y, bg, fg, end.x, end.y);
 
-  font_paint(gc, font, x, y, bg, fg, str, len);
-
-  if (attrib & FONTATTRIB_UNDERLINE)
+  if (gc->clipstate != cs_suppress)
   {
-    gc->line_start(gc, fg);
-    gc->line_line(gc, x,y, x+bounds.xoffset, y);
-    gc->line_end(gc);
+      font_paint(gc, font, x, y, bg, fg, str, len);
+
+      if (attrib & FONTATTRIB_UNDERLINE)
+      {
+        gc->line_start(gc, fg);
+        gc->line_line(gc, x,y, x+bounds.xoffset, y);
+        gc->line_end(gc);
+      }
   }
 
 #if 0

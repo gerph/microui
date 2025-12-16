@@ -1,0 +1,96 @@
+/*******************************************************************
+ * File:        clipping
+ * Purpose:     Clipping state for graphics context
+ * Author:      Gerph
+ * Date:        16 Dec 2025
+ ******************************************************************/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include "swis.h"
+
+#include "gcontext.h"
+#include "screen.h"
+
+/* Define this to debug this file */
+//#undef DEBUG
+//#define DEBUG
+
+#ifdef DEBUG
+#define dprintf if (1) _swix(0x104,0), printf
+#else
+#define dprintf if (0) _swix(0x104,0), printf
+#endif
+
+
+/*************************************************** Gerph *********
+ Function:      gcontext_vdu_clipping
+ Description:   Description of function
+ Parameters:    gc-> graphics context
+                bbox-> the region to clip, or NULL to reset bounding box
+ Returns:       true if clipping supported, false if not supported.
+ ******************************************************************/
+bool gcontext_vdu_clipping(struct gcontext_s *gc,
+                           bbox_t *bbox)
+{
+    if (bbox == NULL)
+    {
+        if (gc->clipstate != cs_noclip)
+        {
+            dprintf("Clipping: Full Screen\n");
+            screen_set_graphics_window(NULL);
+        }
+        gc->clipstate = cs_noclip;
+    }
+    else
+    {
+        if (bbox->x0 >= bbox->x1 ||
+            bbox->y0 >= bbox->y1)
+        {
+            /* Clip everything - suppress drawing */
+            if (gc->clipstate == cs_suppress)
+            {
+                /* Everything is already suppressed */
+            }
+            else
+            {
+                /* Need to suppress all drawing; in case we do try, the clip is a single pixel */
+                gc->clipstate = cs_suppress;
+                gc->clipping.x0 = 0;
+                gc->clipping.y0 = 0;
+                gc->clipping.x1 = 1;
+                gc->clipping.y1 = 1;
+                dprintf("Clipping: Suppress\n");
+                screen_set_graphics_window(&gc->clipping);
+            }
+        }
+        else
+        {
+            /* It's a regular clipping rectangle */
+            if (gc->clipstate == cs_clip)
+            {
+                /* A clip is already present */
+                if (gc->clipping.x0 == bbox->x0 &&
+                    gc->clipping.x1 == bbox->x1 &&
+                    gc->clipping.y0 == bbox->y0 &&
+                    gc->clipping.y1 == bbox->y1)
+                {
+                    /* Exact same clip; ignore */
+                }
+                else
+                {
+                    dprintf("Clipping: New box\n");
+                    screen_set_graphics_window(NULL);
+                    screen_set_graphics_window(bbox);
+                }
+            }
+            else
+            {
+                gc->clipstate = cs_clip;
+                dprintf("Clipping: Box\n");
+                screen_set_graphics_window(bbox);
+            }
+        }
+    }
+    return true;
+}

@@ -161,7 +161,7 @@ void r_set_clip_rect(mu_Rect rect) {
         rect.w == 0x1000000 &&
         rect.h == 0x1000000)
     {
-        screen_set_graphics_window(NULL); /* Reset if it was a full screen */
+        gc->clip_rectangle(gc, NULL); /* Reset if it was a full screen */
     }
     else
     {
@@ -170,7 +170,7 @@ void r_set_clip_rect(mu_Rect rect) {
         box.x1 = X(rect.x + rect.w);
         box.y1 = Y(rect.y);
         dprintf("  %i,%i - %i,%i\n", box.x0, box.y0, box.x1, box.y1);
-        screen_set_graphics_window(&box);
+        gc->clip_rectangle(gc, &box);
     }
 }
 

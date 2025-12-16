@@ -8,6 +8,7 @@
 #ifndef GCONTEXT_H
 #define GCONTEXT_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #define FONTATTRIB_ALIGN_HLEFT   (0<<0)
@@ -106,6 +107,17 @@ typedef struct gcontext_s {
                                  const char *str, int strsize,
                                  uint32_t bg, uint32_t fg,
                                  uint32_t attrib);
+
+    bool (*clip_rectangle)(struct gcontext_s *gc,
+                           bbox_t *bbox);
+
+    /* Private information */
+    bbox_t clipping;
+    enum clipstate_e {
+        cs_noclip,      /* No clipping enforced; everything drawn */
+        cs_suppress,    /* Completely clipped; nothing drawn */
+        cs_clip         /* Clipping by the clipping box */
+    } clipstate;
 } gcontext_t;
 
 

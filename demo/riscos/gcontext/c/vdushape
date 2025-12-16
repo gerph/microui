@@ -44,15 +44,18 @@ void gcontext_vdu_rectfill(gcontext_t *gc,
                            uint32_t colour,
                            int x0, int y0, int x1, int y1)
 {
+  if (gc->clipstate != cs_suppress)
+  {
 #ifdef DEBUG_RECTASX
-  line_start(colour);
-  line(x0,y0,x1,y1);
-  line(x0,y1,x1,y0);
-  line_end();
+      line_start(colour);
+      line(x0,y0,x1,y1);
+      line(x0,y1,x1,y0);
+      line_end();
 #else
-  gcol(colour);
-  rect(x0,y0,x1,y1);
+      gcol(colour);
+      rect(x0,y0,x1,y1);
 #endif
+  }
 }
 
 /*************************************************** Gerph *********
@@ -69,10 +72,13 @@ void gcontext_vdu_trifill(gcontext_t *gc,
                           uint32_t colour,
                           int x0, int y0, int x1, int y1, int x2, int y2)
 {
-  gcol(colour);
-  move(x0,y0);
-  move(x1,y1);
-  tri(x2,y2);
+  if (gc->clipstate != cs_suppress)
+  {
+      gcol(colour);
+      move(x0,y0);
+      move(x1,y1);
+      tri(x2,y2);
+  }
 }
 
 /*************************************************** Gerph *********
@@ -106,8 +112,11 @@ void gcontext_vdu_lineend(gcontext_t *gc)
  ******************************************************************/
 void gcontext_vdu_line(gcontext_t *gc, int x0, int y0, int x1, int y1)
 {
-  move(x0, y0);
-  draw(x1, y1);
+  if (gc->clipstate != cs_suppress)
+  {
+      move(x0, y0);
+      draw(x1, y1);
+  }
 }
 
 /*************************************************** Gerph *********
@@ -118,9 +127,12 @@ void gcontext_vdu_line(gcontext_t *gc, int x0, int y0, int x1, int y1)
  ******************************************************************/
 void gcontext_vdu_linedotted(gcontext_t *gc, int x0, int y0, int x1, int y1)
 {
-  dotpattern(8, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA);
-  move(x0,y0);
-  drawdotted(x1,y1);
+  if (gc->clipstate != cs_suppress)
+  {
+      dotpattern(8, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA);
+      move(x0,y0);
+      drawdotted(x1,y1);
+  }
 }
 
 /*************************************************** Gerph *********
@@ -136,24 +148,36 @@ void gcontext_vdu_linedashed(gcontext_t *gc, int x0, int y0, int x1, int y1)
      * 00111001 11001110 01110011 10011100 11100111
      * 10011100 01110011 11001110 00111001 11100111
      */
-  dotpattern(8 * 5, 0x9C, 0x73, 0xCE, 0x39, 0xE7, 0xAA, 0xAA, 0xAA);
-  move(x0,y0);
-  drawdotted(x1,y1);
+  if (gc->clipstate != cs_suppress)
+  {
+    dotpattern(8 * 5, 0x9C, 0x73, 0xCE, 0x39, 0xE7, 0xAA, 0xAA, 0xAA);
+    move(x0,y0);
+    drawdotted(x1,y1);
+  }
 }
 
 
 /* Fill routines only for debugging */
 void gcontext_vdu_fill_start(gcontext_t *gc, uint32_t fill_colour)
 {
-  gcol(fill_colour);
+  if (gc->clipstate != cs_suppress)
+  {
+      gcol(fill_colour);
+  }
 }
 void gcontext_vdu_fill_move(gcontext_t *gc, int x, int y)
 {
-  move(x,y);
+  if (gc->clipstate != cs_suppress)
+  {
+      move(x,y);
+  }
 }
 void gcontext_vdu_fill_line(gcontext_t *gc, int x, int y)
 {
-  draw(x,y);
+  if (gc->clipstate != cs_suppress)
+  {
+      draw(x,y);
+  }
 }
 void gcontext_vdu_fill_close(gcontext_t *gc)
 {

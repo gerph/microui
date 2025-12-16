@@ -189,23 +189,25 @@ coords_t vdu5_paint(gcontext_t *gc, font_t fh, int x, int y,
     end.y = y;
     return end;
   }
-
-  move(x, y + (ysize * 28 / 32));
-  gcol(fg);
-  seq[5] = (int)(xsize % 256);
-  seq[6] = (int)(xsize / 256);
-  seq[7] = (int)(ysize % 256);
-  seq[8] = (int)(ysize / 256);
-  if (strsize == 1)
+  if (gc->clipstate != cs_suppress)
   {
-      seq[11] = *str;
-      _swix(OS_WriteN, _INR(0,1), seq, 13);
-  }
-  else
-  {
-      _swix(OS_WriteN, _INR(0,1), seq, 11);
-      _swix(OS_WriteN, _INR(0,1), str, strsize);
-      _swix(OS_WriteI + 4, 0);
+      move(x, y + (ysize * 28 / 32));
+      gcol(fg);
+      seq[5] = (int)(xsize % 256);
+      seq[6] = (int)(xsize / 256);
+      seq[7] = (int)(ysize % 256);
+      seq[8] = (int)(ysize / 256);
+      if (strsize == 1)
+      {
+          seq[11] = *str;
+          _swix(OS_WriteN, _INR(0,1), seq, 13);
+      }
+      else
+      {
+          _swix(OS_WriteN, _INR(0,1), seq, 11);
+          _swix(OS_WriteN, _INR(0,1), str, strsize);
+          _swix(OS_WriteI + 4, 0);
+      }
   }
 
   end.x = (int)(x + xsize * (strsize<<xeig));
