@@ -1,58 +1,189 @@
+#include <stdlib.h>
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
+
+#include "swis.h"
+
 #include "renderer.h"
+#include "gcontext.h"
+#include "screen.h"
 
+//#define DEBUG
 
-static int width  = 800;
-static int height = 600;
+#ifdef DEBUG
+#define dprintf if (1) printf
+#else
+#define dprintf if (0) printf
+#endif
+
+static gcontext_t *gc;
+
+#define FONT_SIZE (16.0)
+
+#define X(_p) ((int)( ((_p) * (screen.height - 4) / screenHeight) ))
+#define Y(_p) ((int)( screen.height - 4 - ((_p) * (screen.height - 4) / screenHeight) ))
+#define W(_p) ((int)( ((_p) * (screen.height - 4) / screenHeight) ))
+#define H(_p) ((int)( ((_p) * (screen.height - 4) / screenHeight) ))
+#define IW(_p) ((int)( ((_p) * screenHeight / (screen.height - 4)) ))
+#define IH(_p) ((int)( ((_p) * screenHeight / (screen.height - 4)) ))
+
+#define FONT_NAME "Homerton.Medium"
+
+#define screenWidth ((21.0 / 2.54) * 72)
+#define screenHeight ((29.7 / 2.54) * 72)
+bounds_t screen;
 
 
 void r_init(void) {
-  /* init */
+#ifdef __riscos
+    gc = gcontext_initvdu(1);
+    if (gc == NULL)
+        abort();
+
+    {
+        int32_t mode_selector[] = {
+            1, /* Flags */
+            800,
+            1024,
+            5,
+            -1,
+            -1,
+        };
+        _kernel_oserror * err = _swix(OS_ScreenMode, _INR(0, 1), 0, &mode_selector);
+        if (err)
+        {
+            dprintf("Couldn't change mode: %s\n", err->errmess);
+            abort();
+        }
+    }
+    screen_get_size(&screen);
+#endif
 }
 
 
 
 void r_draw_rect(mu_Rect rect, mu_Color color) {
-    printf("r_draw_rect(%i,%i + %i,%i, R%i, G%i, B%i)\n", rect.x, rect.y, rect.w, rect.h, color.r, color.g, color.b);
+    dprintf("r_draw_rect(%i,%i + %i,%i, R%i, G%i, B%i)\n", rect.x, rect.y, rect.w, rect.h, color.r, color.g, color.b);
+    gc->rectangle_fill(gc, COLOUR_RGB(color.r, color.g, color.b),
+                       X(rect.x), Y(rect.y) - 1,
+                       X(rect.x + rect.w) - 1,
+                       Y(rect.y + rect.h));
 }
 
 
 void r_draw_text(const char *text, mu_Vec2 pos, mu_Color color) {
-    printf("r_draw_text('%s', %i, %i, R%i, G%i, B%i)\n", text, pos.x, pos.y, color.r, color.g, color.b);
+    int32_t xsize = W(FONT_SIZE / 2.5 * 16);
+    int32_t ysize = H(FONT_SIZE / 2.5 * 16);
+    font_t font;
+    static int32_t height = -1;
+    if (height == -1)
+        height = r_get_text_baseline();
+
+    dprintf("r_draw_text('%s', %i, %i, R%i, G%i, B%i)\n", text, pos.x, pos.y, color.r, color.g, color.b);
+
+    font = gc->text_findfont(gc, FONT_NAME, xsize, ysize);
+    gc->text_paint(gc, font, X(pos.x), Y(pos.y + height),
+               0, COLOUR_RGB(color.r, color.g, color.b),
+               text,
+               -1);
+    gc->text_losefont(gc, font);
+
+#ifdef DEBUG_TEXT_RECTANGLE
+    {
+        mu_Rect rect;
+        rect.x = pos.x;
+        rect.y = pos.y;
+        rect.w = r_get_text_width(text, strlen(text));
+        rect.h = r_get_text_height();
+
+        gc->rectangle_outline(gc, COLOUR_RGB(color.r, color.g, color.b),
+                              X(rect.x), Y(rect.y) -1,
+                              X(rect.x + rect.w) - 1,
+                              Y(rect.y + rect.h));
+    }
+#endif
 }
 
 
 void r_draw_icon(int id, mu_Rect rect, mu_Color color) {
-    printf("r_draw_icon(%i, %i,%i + %i,%i, R%i, G%i, B%i)\n", id, rect.x, rect.y, rect.w, rect.h, color.r, color.g, color.b);
+    dprintf("r_draw_icon(%i, %i,%i + %i,%i, R%i, G%i, B%i)\n", id, rect.x, rect.y, rect.w, rect.h, color.r, color.g, color.b);
+    gc->rectangle_fill(gc, COLOUR_RGB(color.r, color.g, color.b),
+                       X(rect.x), Y(rect.y),
+                       X(rect.x + rect.w),
+                       Y(rect.y + rect.h));
 }
 
 
 int r_get_text_width(const char *text, int len) {
-    int l;
-    printf("r_get_text_width('%.*s', %i)", len, text, len);
-    for (l = 0; len > 0 && *text++ != '\0'; len--, l++)
-        ;
-    printf(" = %i\n", l);
-    return l * 16;
+    int32_t xsize = W(FONT_SIZE / 2.5 * 16);
+    int32_t ysize = H(FONT_SIZE / 2.5 * 16);
+    stringbounds_t bounds = {0};
+
+    font_t font = gc->text_findfont(gc, FONT_NAME, xsize, ysize);
+    gc->text_getstringsize(gc, font, &bounds, -1, text, len, -1);
+    gc->text_losefont(gc, font);
+
+    return IW(bounds.xoffset);
 }
 
 
 int r_get_text_height(void) {
-  return 18;
+    int32_t xsize = W(FONT_SIZE / 2.5 * 16);
+    int32_t ysize = H(FONT_SIZE / 2.5 * 16);
+    stringbounds_t bounds = {0};
+
+    font_t font = gc->text_findfont(gc, FONT_NAME, xsize, ysize);
+    gc->text_getstringsize(gc, font, &bounds, -1, "@jtLm,!'^", -1, 0);
+    gc->text_losefont(gc, font);
+
+    return IH(bounds.ascent + bounds.descent);
+}
+
+int r_get_text_baseline(void) {
+    int32_t xsize = W(FONT_SIZE / 2.5 * 16);
+    int32_t ysize = H(FONT_SIZE / 2.5 * 16);
+    stringbounds_t bounds = {0};
+
+    font_t font = gc->text_findfont(gc, FONT_NAME, xsize, ysize);
+    gc->text_getstringsize(gc, font, &bounds, -1, "@jtLm,!'^", -1, 0);
+    gc->text_losefont(gc, font);
+
+    return IH(bounds.ascent);
 }
 
 
 void r_set_clip_rect(mu_Rect rect) {
-    printf("r_set_clip_rect(%i,%i + %i,%i)\n", rect.x, rect.y, rect.w, rect.h);
+    bbox_t box;
+    dprintf("r_set_clip_rect(%i,%i + %i,%i)\n", rect.x, rect.y, rect.w, rect.h);
+    if (rect.x == 0 &&
+        rect.y == 0 &&
+        rect.w == 0x1000000 &&
+        rect.h == 0x1000000)
+    {
+        screen_set_graphics_window(NULL); /* Reset if it was a full screen */
+    }
+    else
+    {
+        box.x0 = X(rect.x);
+        box.y0 = Y(rect.y + rect.h);
+        box.x1 = X(rect.x + rect.w);
+        box.y1 = Y(rect.y);
+        dprintf("  %i,%i - %i,%i\n", box.x0, box.y0, box.x1, box.y1);
+        screen_set_graphics_window(&box);
+    }
 }
 
 
 void r_clear(mu_Color clr) {
-    printf("r_clear(R%i, G%i, B%i)\n", clr.r, clr.g, clr.b);
+    dprintf("r_clear(R%i, G%i, B%i)\n", clr.r, clr.g, clr.b);
+    gc->rectangle_fill(gc, COLOUR_RGB(clr.r, clr.g, clr.b),
+                       0, 0,
+                       screen.width,
+                       screen.height);
 }
 
 
 void r_present(void) {
-    printf("r_present()\n");
+    dprintf("r_present()\n");
 }
