@@ -1,0 +1,58 @@
+#include <assert.h>
+#include <stdio.h>
+#include "renderer.h"
+
+
+static int width  = 800;
+static int height = 600;
+
+
+void r_init(void) {
+  /* init */
+}
+
+
+
+void r_draw_rect(mu_Rect rect, mu_Color color) {
+    printf("r_draw_rect(%i,%i + %i,%i, R%i, G%i, B%i)\n", rect.x, rect.y, rect.w, rect.h, color.r, color.g, color.b);
+}
+
+
+void r_draw_text(const char *text, mu_Vec2 pos, mu_Color color) {
+    printf("r_draw_text('%s', %i, %i, R%i, G%i, B%i)\n", text, pos.x, pos.y, color.r, color.g, color.b);
+}
+
+
+void r_draw_icon(int id, mu_Rect rect, mu_Color color) {
+    printf("r_draw_icon(%i, %i,%i + %i,%i, R%i, G%i, B%i)\n", id, rect.x, rect.y, rect.w, rect.h, color.r, color.g, color.b);
+}
+
+
+int r_get_text_width(const char *text, int len) {
+    int l;
+    printf("r_get_text_width('%.*s', %i)", len, text, len);
+    for (l = 0; len > 0 && *text++ != '\0'; len--, l++)
+        ;
+    printf(" = %i\n", l);
+    return l * 16;
+}
+
+
+int r_get_text_height(void) {
+  return 18;
+}
+
+
+void r_set_clip_rect(mu_Rect rect) {
+    printf("r_set_clip_rect(%i,%i + %i,%i)\n", rect.x, rect.y, rect.w, rect.h);
+}
+
+
+void r_clear(mu_Color clr) {
+    printf("r_clear(R%i, G%i, B%i)\n", clr.r, clr.g, clr.b);
+}
+
+
+void r_present(void) {
+    printf("r_present()\n");
+}
