@@ -493,6 +493,9 @@ void mu_draw_text(mu_Context *ctx, mu_Font font, const char *str, int len,
   if (clipped == MU_CLIP_PART) { mu_set_clip(ctx, mu_get_clip_rect(ctx)); }
   /* add command */
   if (len < 0) { len = strlen(str); }
+#ifdef __riscos
+  len = (len + 3) & ~3; /* Round up to word alignment */
+#endif
   cmd = mu_push_command(ctx, MU_COMMAND_TEXT, sizeof(mu_TextCommand) + len);
   memcpy(cmd->text.str, str, len);
   cmd->text.str[len] = '\0';
