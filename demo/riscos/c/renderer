@@ -7,7 +7,7 @@
 
 #include "renderer.h"
 #include "gcontext.h"
-#include "screen.h"
+#include "border.h"
 
 //#define DEBUG
 
@@ -19,7 +19,7 @@
 
 static gcontext_t *gc;
 
-#define FONT_SIZE (16.0)
+#define FONT_SIZE (12.0)
 
 #define X(_p) ((int)( ((_p) * (screen.height - 4) / screenHeight) ))
 #define Y(_p) ((int)( screen.height - 4 - ((_p) * (screen.height - 4) / screenHeight) ))
@@ -30,8 +30,13 @@ static gcontext_t *gc;
 
 #define FONT_NAME "Homerton.Medium"
 
+#ifdef PORTRAIT
 #define screenWidth ((21.0 / 2.54) * 72)
 #define screenHeight ((29.7 / 2.54) * 72)
+#else
+#define screenWidth ((29.7 / 2.54) * 72)
+#define screenHeight ((21.0 / 2.54) * 72)
+#endif
 bounds_t screen;
 
 
@@ -44,9 +49,14 @@ void r_init(void) {
     {
         int32_t mode_selector[] = {
             1, /* Flags */
+#ifdef PORTRAIT
             800,
             1024,
-            5,
+#else
+            1024,
+            768, /* Was 800, but that doesn't start in RPCEmu */
+#endif
+            4,
             -1,
             -1,
         };
@@ -66,9 +76,9 @@ void r_init(void) {
 void r_draw_rect(mu_Rect rect, mu_Color color) {
     dprintf("r_draw_rect(%i,%i + %i,%i, R%i, G%i, B%i)\n", rect.x, rect.y, rect.w, rect.h, color.r, color.g, color.b);
     gc->rectangle_fill(gc, COLOUR_RGB(color.r, color.g, color.b),
-                       X(rect.x), Y(rect.y) - 1,
+                       X(rect.x), Y(rect.y),
                        X(rect.x + rect.w) - 1,
-                       Y(rect.y + rect.h));
+                       Y(rect.y + rect.h) - 1);
 }
 
 
@@ -108,10 +118,113 @@ void r_draw_text(const char *text, mu_Vec2 pos, mu_Color color) {
 
 void r_draw_icon(int id, mu_Rect rect, mu_Color color) {
     dprintf("r_draw_icon(%i, %i,%i + %i,%i, R%i, G%i, B%i)\n", id, rect.x, rect.y, rect.w, rect.h, color.r, color.g, color.b);
-    gc->rectangle_fill(gc, COLOUR_RGB(color.r, color.g, color.b),
-                       X(rect.x), Y(rect.y),
-                       X(rect.x + rect.w),
-                       Y(rect.y + rect.h));
+
+    switch (id)
+    {
+        case MU_ICON_CLOSE:
+            {
+                uint32_t colour_x;
+#ifdef BORDER_CLOSE
+                gc->rectangle_fill(gc, COLOUR_RGB(color.r, color.g, color.b),
+                                   X(rect.x), Y(rect.y),
+                                   X(rect.x + rect.w),
+                                   Y(rect.y + rect.h));
+
+                border_drawsimple(gc, bt_outset,
+                                  2,
+                                  X(rect.x), Y(rect.y),
+                                  W(rect.w), H(rect.h),
+                                  COLOUR_RGB(color.r, color.g, color.b),
+                                  COLOUR_NONE);
+                colour_x = COLOUR_RGB(255 - color.r, 255 - color.g, 255 - color.b);
+#else
+                colour_x = COLOUR_RGB(color.r, color.g, color.b);
+#endif
+
+#define INSET_X (12)
+                gc->line_start(gc, colour_x);
+                gc->line_line(gc, X(rect.x) + INSET_X, Y(rect.y) - INSET_X,
+                                  X(rect.x + rect.w) - INSET_X, Y(rect.y + rect.h) + INSET_X);
+                gc->line_end(gc);
+
+                gc->line_start(gc, colour_x);
+                gc->line_line(gc, X(rect.x) + INSET_X, Y(rect.y + rect.h) + INSET_X,
+                                  X(rect.x + rect.w) - INSET_X, Y(rect.y) - INSET_X);
+                gc->line_end(gc);
+            }
+            break;
+
+        case MU_ICON_CHECK:
+            {
+#define INSET_CHECK (12)
+                gc->rectangle_fill(gc, COLOUR_RGB(color.r, color.g, color.b),
+                                   X(rect.x) + INSET_CHECK, Y(rect.y) - INSET_CHECK,
+                                   X(rect.x + rect.w) - INSET_CHECK,
+                                   Y(rect.y + rect.h) + INSET_CHECK);
+            }
+            break;
+
+        case MU_ICON_EXPANDED:
+            {
+#define INSET_EXPAND (12)
+                /* Expanded usually drawn as 'v' marker */
+                bbox_t box;
+                int cx = X(rect.x + rect.w / 2);
+                int cy = Y(rect.y + rect.w / 2);
+                int w = W(rect.w) - INSET_EXPAND * 2;
+                int h = H(rect.h) - INSET_EXPAND * 2;
+
+                box.x0 = X(rect.x) + INSET_EXPAND;
+                box.y1 = Y(rect.y) - INSET_EXPAND;
+                box.x1 = X(rect.x + rect.w) - INSET_EXPAND;
+                box.y0 = Y(rect.y + rect.h) + INSET_EXPAND;
+
+
+                gc->line_start(gc, COLOUR_RGB(color.r, color.g, color.b));
+                gc->line_line(gc,
+                              box.x0, cy + h / 4,
+                              cx,     cy - h / 4);
+                gc->line_line(gc,
+                              cx,     cy - h / 4,
+                              box.x1, cy + h / 4);
+                gc->line_end(gc);
+            }
+            break;
+
+        case MU_ICON_COLLAPSED:
+            {
+#define INSET_EXPAND (12)
+                /* Collapsed usually drawn as 'v' marker */
+                bbox_t box;
+                int cx = X(rect.x + rect.w / 2);
+                int cy = Y(rect.y + rect.w / 2);
+                int w = W(rect.w) - INSET_EXPAND * 2;
+                int h = H(rect.h) - INSET_EXPAND * 2;
+
+                box.x0 = X(rect.x) + INSET_EXPAND;
+                box.y1 = Y(rect.y) - INSET_EXPAND;
+                box.x1 = X(rect.x + rect.w) - INSET_EXPAND;
+                box.y0 = Y(rect.y + rect.h) + INSET_EXPAND;
+
+
+                gc->line_start(gc, COLOUR_RGB(color.r, color.g, color.b));
+                gc->line_line(gc,
+                              cx - w / 4, box.y1,
+                              cx + w / 4, cy);
+                gc->line_line(gc,
+                              cx + w / 4, cy,
+                              cx - w / 4, box.y0);
+                gc->line_end(gc);
+            }
+            break;
+
+        default:
+            gc->rectangle_fill(gc, COLOUR_RGB(color.r, color.g, color.b),
+                               X(rect.x), Y(rect.y),
+                               X(rect.x + rect.w),
+                               Y(rect.y + rect.h));
+            break;
+    }
 }
 
 
@@ -121,7 +234,7 @@ int r_get_text_width(const char *text, int len) {
     stringbounds_t bounds = {0};
 
     font_t font = gc->text_findfont(gc, FONT_NAME, xsize, ysize);
-    gc->text_getstringsize(gc, font, &bounds, -1, text, len, -1);
+    gc->text_getstringsize(gc, font, &bounds, -1, text, len, 0);
     gc->text_losefont(gc, font);
 
     return IW(bounds.xoffset);

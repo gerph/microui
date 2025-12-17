@@ -80,7 +80,6 @@ bool gcontext_vdu_clipping(struct gcontext_s *gc,
                 else
                 {
                     dprintf("Clipping: New box\n");
-                    screen_set_graphics_window(NULL);
                     screen_set_graphics_window(bbox);
                 }
             }

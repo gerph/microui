@@ -18,6 +18,7 @@ COMPONENT  = GContext
 #   ${EXP_LIB}.${COMPONENT}.h.myheader
 EXPORTS    = ${EXP_LIB}.${COMPONENT}.h.gcontext \
 			 ${EXP_LIB}.${COMPONENT}.h.screen \
+			 ${EXP_LIB}.${COMPONENT}.h.border \
 
 # Comma-separated list of paths to use for includes, such as:
 #	C:LibName.
@@ -43,6 +44,8 @@ include LibExport
 ${EXP_LIB}.${COMPONENT}.h.gcontext: h.gcontext
        ${CP} $?  $@  ${CPFLAGS}
 ${EXP_LIB}.${COMPONENT}.h.screen: h.screen
+       ${CP} $?  $@  ${CPFLAGS}
+${EXP_LIB}.${COMPONENT}.h.border: h.border
        ${CP} $?  $@  ${CPFLAGS}
 
 #---------------------------------------------------------------------------
