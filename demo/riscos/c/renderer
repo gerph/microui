@@ -17,6 +17,10 @@
 #define dprintf if (0) printf
 #endif
 
+
+#define OSByte_SelectPointerShape 0x6A
+
+
 static gcontext_t *gc;
 
 #define FONT_SIZE (12.0)
@@ -25,6 +29,8 @@ static gcontext_t *gc;
 #define Y(_p) ((int)( screen.height - 4 - ((_p) * (screen.height - 4) / screenHeight) ))
 #define W(_p) ((int)( ((_p) * (screen.height - 4) / screenHeight) ))
 #define H(_p) ((int)( ((_p) * (screen.height - 4) / screenHeight) ))
+#define IX(_p) ((int)( ((_p) * screenHeight / (screen.height - 4)) ))
+#define IY(_p) ((int)( ((screen.height - 4 - (_p)) * screenHeight / (screen.height - 4)) ))
 #define IW(_p) ((int)( ((_p) * screenHeight / (screen.height - 4)) ))
 #define IH(_p) ((int)( ((_p) * screenHeight / (screen.height - 4)) ))
 
@@ -39,6 +45,7 @@ static gcontext_t *gc;
 #endif
 bounds_t screen;
 
+int bank = 1;
 
 void r_init(void) {
 #ifdef __riscos
@@ -53,8 +60,12 @@ void r_init(void) {
             800,
             1024,
 #else
+            #if 0
             1024,
             768, /* Was 800, but that doesn't start in RPCEmu */
+            #else
+            800, 600,
+            #endif
 #endif
             4,
             -1,
@@ -68,9 +79,21 @@ void r_init(void) {
         }
     }
     screen_get_size(&screen);
+
+    /* Pointer on */
+    _swix(OS_Byte, _INR(0, 2), OSByte_SelectPointerShape, 1, 0);
+    _swix(OS_Byte, _INR(0, 1), 112, bank);
+    bank = 3-bank;
+    _swix(OS_Byte, _INR(0, 1), 113, bank);
 #endif
 }
 
+
+void r_riscos_to_ui(int x, int y, mu_Vec2 *vec)
+{
+    vec->x = IX(x);
+    vec->y = IY(y);
+}
 
 
 void r_draw_rect(mu_Rect rect, mu_Color color) {
@@ -299,4 +322,7 @@ void r_clear(mu_Color clr) {
 
 void r_present(void) {
     dprintf("r_present()\n");
+    _swix(OS_Byte, _INR(0, 1), 112, bank);
+    bank = 3-bank;
+    _swix(OS_Byte, _INR(0, 1), 113, bank);
 }

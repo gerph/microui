@@ -1,8 +1,11 @@
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include "renderer.h"
 #include "microui.h"
+
+#include "swis.h"
 
 
 static  char logbuf[64000];
@@ -296,6 +299,45 @@ int main(int argc, char **argv) {
           break;
         }
       }
+    }
+#else
+    {
+        static uint32_t lastb = 0;
+        static mu_Vec2 lastpos;
+        uint32_t ro_b, b;
+        int32_t x, y;
+        mu_Vec2 pos;
+        _swix(OS_Mouse, _OUTR(0,2), &x, &y, &ro_b);
+        b = 0;
+        if (ro_b & 4) b |= MU_MOUSE_LEFT;
+        if (ro_b & 2) b |= MU_MOUSE_MIDDLE;
+        if (ro_b & 1) b |= MU_MOUSE_RIGHT;
+        r_riscos_to_ui(x, y, &pos);
+        _swix(0x104,0); _swix(0x100+30,0);
+        if (lastpos.x != pos.x ||
+            lastpos.y != pos.y)
+        {
+            //printf("Pos = %i, %i\n", pos.x, pos.y);
+            mu_input_mousemove(ctx, pos.x, pos.y);
+        }
+        if (b)
+        {
+            if (!lastb)
+            {
+                //printf("Click at %i, %i: %i\n", pos.x, pos.y, b);
+                mu_input_mousedown(ctx, pos.x, pos.y, b);
+            }
+        }
+        else
+        {
+            if (lastb)
+            {
+                //printf("Release at %i, %i: %i\n", pos.x, pos.y, lastb);
+                mu_input_mouseup(ctx, pos.x, pos.y, lastb);
+            }
+        }
+        lastpos = pos;
+        lastb = b;
     }
 #endif
 
